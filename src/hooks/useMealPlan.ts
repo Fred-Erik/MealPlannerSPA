@@ -36,7 +36,10 @@ export function useGenerateWeek() {
       const remaining = input.slotCount - input.existingRecipeIds.length
       if (remaining <= 0) return plan
       const availableRecipes = input.recipes.filter((r) => !input.existingRecipeIds.includes(r.id))
-      const slots = suggestWeek(input.categories, availableRecipes, remaining)
+      const existingCategoryIds = input.recipes
+        .filter((r) => input.existingRecipeIds.includes(r.id))
+        .map((r) => r.categoryId)
+      const slots = suggestWeek(input.categories, availableRecipes, remaining, existingCategoryIds)
       const nextPosition = input.existingPositions.length > 0 ? Math.max(...input.existingPositions) + 1 : 0
       const items = slots
         .map((slot, i) =>
