@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -44,64 +44,78 @@ type RecipeFormOutput = z.output<typeof recipeSchema>
 
 const emptyIngredient = { quantity: '', unit: '', name: '' }
 
+type ExistingRecipe = NonNullable<ReturnType<typeof useRecipe>['data']>
+type Categories = ReturnType<typeof useCategories>['data']
+
 export function RecipeEditPage() {
   const { id } = useParams<{ id: string }>()
   const isEditing = !!id
-  const navigate = useNavigate()
   const { data: categories } = useCategories()
   const { data: existingRecipe, isLoading } = useRecipe(id)
+
+  if (isEditing && isLoading) {
+    return <Skeleton className="h-96 w-full" />
+  }
+
+  // Remount per recipe so the form only ever needs to initialize once, from already-loaded data.
+  return <RecipeForm key={id ?? 'new'} id={id} categories={categories} existingRecipe={existingRecipe} />
+}
+
+function RecipeForm({
+  id,
+  categories,
+  existingRecipe,
+}: {
+  id: string | undefined
+  categories: Categories
+  existingRecipe: ExistingRecipe | undefined
+}) {
+  const isEditing = !!id
+  const navigate = useNavigate()
   const saveRecipe = useSaveRecipe()
   const [photoFile, setPhotoFile] = useState<File | null>(null)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(
+    existingRecipe?.photoPath ? getPhotoUrl(existingRecipe.photoPath) : null
+  )
   const [submitting, setSubmitting] = useState(false)
 
   const {
     register,
     control,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<RecipeFormInput, unknown, RecipeFormOutput>({
     resolver: zodResolver(recipeSchema),
-    defaultValues: {
-      name: '',
-      categoryId: '',
-      baseServings: 6,
-      instructions: '',
-      sourceUrl: '',
-      notes: '',
-      lastCookedAt: '',
-      ingredients: [emptyIngredient],
-    },
+    defaultValues: existingRecipe
+      ? {
+          name: existingRecipe.name,
+          categoryId: existingRecipe.category.id,
+          baseServings: existingRecipe.baseServings,
+          instructions: existingRecipe.instructions ?? '',
+          sourceUrl: existingRecipe.sourceUrl ?? '',
+          notes: existingRecipe.notes ?? '',
+          lastCookedAt: existingRecipe.lastCookedAt ?? '',
+          ingredients: existingRecipe.ingredients.length
+            ? existingRecipe.ingredients.map((i) => ({
+                quantity: i.quantity !== null ? String(i.quantity) : '',
+                unit: i.unit ?? '',
+                name: i.name,
+              }))
+            : [emptyIngredient],
+        }
+      : {
+          name: '',
+          categoryId: '',
+          baseServings: 6,
+          instructions: '',
+          sourceUrl: '',
+          notes: '',
+          lastCookedAt: '',
+          ingredients: [emptyIngredient],
+        },
   })
 
   const { fields, append, remove } = useFieldArray({ control, name: 'ingredients' })
-
-  useEffect(() => {
-    if (existingRecipe) {
-      reset({
-        name: existingRecipe.name,
-        categoryId: existingRecipe.category.id,
-        baseServings: existingRecipe.baseServings,
-        instructions: existingRecipe.instructions ?? '',
-        sourceUrl: existingRecipe.sourceUrl ?? '',
-        notes: existingRecipe.notes ?? '',
-        lastCookedAt: existingRecipe.lastCookedAt ?? '',
-        ingredients: existingRecipe.ingredients.length
-          ? existingRecipe.ingredients.map((i) => ({
-              quantity: i.quantity !== null ? String(i.quantity) : '',
-              unit: i.unit ?? '',
-              name: i.name,
-            }))
-          : [emptyIngredient],
-      })
-      if (existingRecipe.photoPath) setPhotoPreview(getPhotoUrl(existingRecipe.photoPath))
-    }
-  }, [existingRecipe, reset])
-
-  if (isEditing && isLoading) {
-    return <Skeleton className="h-96 w-full" />
-  }
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

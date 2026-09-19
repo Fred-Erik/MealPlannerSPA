@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,13 +12,14 @@ export function SettingsPage() {
   const updateSettings = useUpdateSettings()
   const [recipesPerWeek, setRecipesPerWeek] = useState(3)
   const [servings, setServings] = useState(6)
+  const [loadedSettings, setLoadedSettings] = useState(settings)
 
-  useEffect(() => {
-    if (settings) {
-      setRecipesPerWeek(settings.defaultRecipesPerWeek)
-      setServings(settings.defaultServings)
-    }
-  }, [settings])
+  // Sync local editable state once settings arrive, without a post-render effect.
+  if (settings && settings !== loadedSettings) {
+    setLoadedSettings(settings)
+    setRecipesPerWeek(settings.defaultRecipesPerWeek)
+    setServings(settings.defaultServings)
+  }
 
   async function handleSave() {
     try {

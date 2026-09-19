@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
-import { Check, ChevronLeft, ChevronRight, Minus, Plus, Repeat, Trash2 } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Minus, Plus, Repeat } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -45,10 +45,13 @@ export function WeekPlanPage() {
   // Target count used only until a plan exists; afterwards the actual item count is authoritative.
   const [pendingCount, setPendingCount] = useState(3)
   const [pickerOpenForItem, setPickerOpenForItem] = useState<string | null>(null)
+  const [loadedSettings, setLoadedSettings] = useState(settings)
 
-  useEffect(() => {
-    if (settings) setPendingCount(settings.defaultRecipesPerWeek)
-  }, [settings])
+  // Sync pending count once settings arrive, without a post-render effect.
+  if (settings && settings !== loadedSettings) {
+    setLoadedSettings(settings)
+    setPendingCount(settings.defaultRecipesPerWeek)
+  }
 
   const recipeCount = plan ? plan.items.length : pendingCount
 
