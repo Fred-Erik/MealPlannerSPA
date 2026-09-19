@@ -110,6 +110,7 @@ export function WeekPlanPage() {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
       <div className="space-y-6">
+
         <div className="space-y-2">
           <div>
             <div className="flex items-center justify-between">
@@ -126,9 +127,11 @@ export function WeekPlanPage() {
             </div>
             {weekSubtitle && <p className="mt-0.5 text-sm text-muted-foreground">{weekSubtitle}</p>}
           </div>
+        </div>
 
+        <div className="flex flex-wrap items-center gap-3">
           {editable && (
-            <div className="flex items-center justify-between gap-3 rounded-lg bg-sky-50 px-3 py-2 mt-3">
+            <div className="flex flex-1 items-center justify-between gap-3 rounded-lg bg-sky-50 px-3 py-2">
               <span className="text-sm font-medium">Aantal recepten deze week</span>
               <div className="flex items-center gap-1">
                 <Button
@@ -151,13 +154,13 @@ export function WeekPlanPage() {
               </div>
             </div>
           )}
-        </div>
 
-      {plan && (
-        <Button onClick={handleCopyList} variant="secondary" className="w-fit bg-sky-200 py-5 px-3 -mt-5 mb-0">
-          Boodschappenlijst kopiëren
-        </Button>
-      )}
+          {plan && (
+            <Button onClick={handleCopyList} variant="secondary" className="w-fit bg-sky-200 py-5 px-3">
+              Boodschappenlijst kopiëren
+            </Button>
+          )}
+        </div>
 
         {planLoading ? (
           <Skeleton className="h-40 w-full" />
@@ -213,30 +216,22 @@ export function WeekPlanPage() {
                         </Button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCookedToggle(item.id, !item.cookedAt)}
-                          className={cn(
-                            'border-dashed',
-                            item.cookedAt &&
-                              'border-solid border-green-600 bg-green-600/10 text-green-700 hover:bg-green-600/20 dark:text-green-400',
-                          )}
-                        >
-                          {item.cookedAt && <Check className="size-3.5" />}
-                          Gekookt
-                        </Button>
                         <Button variant="outline" size="icon" onClick={() => setPickerOpenForItem(item.id)} title="Vervangen">
                           <Repeat className="size-4" />
                         </Button>
                         <Button
+                          type="button"
                           variant="outline"
-                          size="icon"
-                          onClick={() => deleteItem.mutate(item.id)}
-                          title="Verwijderen"
+                          size={item.cookedAt ? "sm" : "icon"}
+                          onClick={() => handleCookedToggle(item.id, !item.cookedAt)}
+                          className={cn(
+                            'py-4',
+                            item.cookedAt &&
+                              'border-solid border-green-600 bg-green-600/10 text-green-700 hover:bg-green-600/20 dark:text-green-400',
+                          )}
                         >
-                          <Trash2 className="size-4" />
+                          <Check className="size-3.5" />
+                          {item.cookedAt && "Gekookt" }
                         </Button>
                       </div>
                     </div>
