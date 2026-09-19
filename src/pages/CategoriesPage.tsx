@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -121,9 +122,15 @@ export function CategoriesPage() {
                   </button>
                 )}
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span>
-                    {category.recipeCount} {category.recipeCount === 1 ? 'recept' : 'recepten'}
-                  </span>
+                  {category.recipeCount > 0 ? (
+                    <Link to={`/recepten?categorie=${category.id}`} className="hover:underline">
+                      {category.recipeCount} {category.recipeCount === 1 ? 'recept' : 'recepten'}
+                    </Link>
+                  ) : (
+                    <span>
+                      {category.recipeCount} {category.recipeCount === 1 ? 'recept' : 'recepten'}
+                    </span>
+                  )}
                   {positionById.has(category.id) ? (
                     <span>Positie {positionById.get(category.id)} in rotatie</span>
                   ) : (

@@ -145,25 +145,29 @@ export function WeekPlanPage() {
           <div className="space-y-3">
             {plan.items.map((item) => (
               <Card key={item.id}>
-                <CardContent className="flex items-center gap-4 py-4">
-                  <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {item.recipe.photoPath && (
-                      <img
-                        src={getPhotoUrl(item.recipe.photoPath)}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                <CardContent className="flex flex-col gap-3 py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                      {item.recipe.photoPath && (
+                        <img
+                          src={getPhotoUrl(item.recipe.photoPath)}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <span className={cn('font-medium', item.cookedAt && 'line-through text-muted-foreground')}>
                         {item.recipe.name}
                       </span>
-                      <Badge variant="secondary">{item.recipe.category.name}</Badge>
+                      <div className="mt-1">
+                        <Badge variant="secondary">{item.recipe.category.name}</Badge>
+                      </div>
                     </div>
-                    {editable && (
-                      <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                  </div>
+                  {editable && (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>Personen:</span>
                         <Button
                           variant="ghost"
@@ -183,28 +187,26 @@ export function WeekPlanPage() {
                           <Plus className="size-3" />
                         </Button>
                       </div>
-                    )}
-                  </div>
-                  {editable && (
-                    <div className="flex items-center gap-2">
-                      <label className="flex items-center gap-1 text-sm">
-                        <Checkbox
-                          checked={!!item.cookedAt}
-                          onCheckedChange={(checked) => handleCookedToggle(item.id, !!checked)}
-                        />
-                        Gekookt
-                      </label>
-                      <Button variant="outline" size="icon" onClick={() => setPickerOpenForItem(item.id)} title="Vervangen">
-                        <Repeat className="size-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => deleteItem.mutate(item.id)}
-                        title="Verwijderen"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-1.5 text-sm">
+                          <Checkbox
+                            checked={!!item.cookedAt}
+                            onCheckedChange={(checked) => handleCookedToggle(item.id, !!checked)}
+                          />
+                          Gekookt
+                        </label>
+                        <Button variant="outline" size="icon" onClick={() => setPickerOpenForItem(item.id)} title="Vervangen">
+                          <Repeat className="size-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => deleteItem.mutate(item.id)}
+                          title="Verwijderen"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </CardContent>

@@ -1,6 +1,9 @@
 ---
 name: add-recipe
 description: "Use to add a new recipe to the MealPlannerSPA database from a recipe website URL (e.g. ah.nl/allerhande, leukerecepten.nl). Extracts the recipe, deduplicates ingredient names against existing recipes, and writes it via scripts/add-recipe.mjs."
+metadata:
+  author: frederik
+  version: "0.1.0"
 ---
 
 # Add recipe to MealPlannerSPA
@@ -20,6 +23,21 @@ This skill only writes data — it never edits app code.
 1. **Fetch the recipe** from the given URL. Extract: name, ingredients (quantity, unit, name),
    instructions, servings (if stated), and the source URL. Translate to Dutch if the source
    is in another language — this app's content is Dutch.
+
+   For **ah.nl/allerhande** URLs, use the extraction helper instead of fetching the page
+   directly — ah.nl is behind Akamai bot protection, so direct fetches usually return a
+   challenge page:
+   ```bash
+   node scripts/extract-ah-recipe.mjs <url>
+   ```
+   If that errors because of the bot check, ask the user to save the page from their browser
+   (Ctrl+S, "Webpagina, alleen HTML") and run it against the saved file instead:
+   ```bash
+   node scripts/extract-ah-recipe.mjs "C:\path\to\saved-page.html" --out /tmp/extracted.json
+   ```
+   This prints normalized JSON (name, servings, instructions, image url, source url, and both
+   raw and best-effort quantity/unit/name-split ingredients). The unit/name split is a naive
+   heuristic — always sanity-check it (and dedupe against step 3) before using it in the payload.
 
 2. **List existing categories**:
    ```bash

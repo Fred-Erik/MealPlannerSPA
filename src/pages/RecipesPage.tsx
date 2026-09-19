@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,8 +21,9 @@ const ALL_CATEGORIES = 'alle'
 export function RecipesPage() {
   const { data: recipes, isLoading } = useRecipes()
   const { data: categories } = useCategories()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
-  const [categoryId, setCategoryId] = useState(ALL_CATEGORIES)
+  const [categoryId, setCategoryId] = useState(searchParams.get('categorie') ?? ALL_CATEGORIES)
 
   const filtered = useMemo(() => {
     if (!recipes) return []
@@ -56,9 +57,29 @@ export function RecipesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={categoryId} onValueChange={(value) => setCategoryId(value ?? ALL_CATEGORIES)}>
+        <Select
+          value={categoryId}
+          onValueChange={(value) => {
+            setCategoryId(value ?? ALL_CATEGORIES)
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev)
+              if (!value || value === ALL_CATEGORIES) {
+                next.delete('categorie')
+              } else {
+                next.set('categorie', value)
+              }
+              return next
+            })
+          }}
+        >
           <SelectTrigger className="sm:w-56">
-            <SelectValue placeholder="Categorie" />
+            <SelectValue placeholder="Categorie">
+              {(value: string | null) =>
+                value === ALL_CATEGORIES || !value
+                  ? 'Alle categorieën'
+                  : categories?.find((category) => category.id === value)?.name
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL_CATEGORIES}>Alle categorieën</SelectItem>

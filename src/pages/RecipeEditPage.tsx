@@ -166,7 +166,9 @@ export function RecipeEditPage() {
               render={({ field }) => (
                 <Select value={field.value} onValueChange={(value) => field.onChange(value ?? '')}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Kies categorie" />
+                    <SelectValue placeholder="Kies categorie">
+                      {(value: string | null) => categories?.find((category) => category.id === value)?.name}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {categories?.map((category) => (

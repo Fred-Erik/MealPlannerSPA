@@ -28,6 +28,13 @@ async function listCategories() {
   }
 }
 
+async function addCategory(name) {
+  if (!name) throw new Error('Gebruik: add-category <naam>')
+  const { data, error } = await supabase.from('categories').insert({ name }).select('id, name').single()
+  if (error) throw error
+  console.log(`Categorie aangemaakt: ${data.id}  ${data.name}`)
+}
+
 async function listIngredientNames() {
   const { data, error } = await supabase
     .from('ingredient_names')
@@ -113,6 +120,9 @@ try {
     case 'categories':
       await listCategories()
       break
+    case 'add-category':
+      await addCategory(arg)
+      break
     case 'ingredients':
       await listIngredientNames()
       break
@@ -121,7 +131,7 @@ try {
       await addRecipe(arg)
       break
     default:
-      console.error('Onbekend commando. Gebruik: categories | ingredients | add <payload.json>')
+      console.error('Onbekend commando. Gebruik: categories | add-category <naam> | ingredients | add <payload.json>')
       process.exit(1)
   }
 } catch (error) {
