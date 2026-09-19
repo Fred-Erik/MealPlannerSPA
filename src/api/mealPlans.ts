@@ -95,6 +95,17 @@ export async function createPlan(weekStart: string): Promise<MealPlan> {
   return { id: data.id, weekStart: data.week_start, createdAt: data.created_at }
 }
 
+export async function getOrCreatePlan(weekStart: string): Promise<MealPlan> {
+  const { data, error } = await supabase
+    .from('meal_plans')
+    .select('id, week_start, created_at')
+    .eq('week_start', weekStart)
+    .maybeSingle()
+  if (error) throw error
+  if (data) return { id: data.id, weekStart: data.week_start, createdAt: data.created_at }
+  return createPlan(weekStart)
+}
+
 export interface NewMealPlanItem {
   recipeId: string
   servings: number

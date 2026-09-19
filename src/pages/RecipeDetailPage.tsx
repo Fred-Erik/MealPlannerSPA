@@ -143,7 +143,11 @@ export function RecipeDetailPage() {
       {recipe.instructions && (
         <div>
           <h2 className="mb-2 text-lg font-medium">Bereiding</h2>
-          <p className="whitespace-pre-wrap">{recipe.instructions}</p>
+          <ol className="list-decimal space-y-2 pl-5">
+            {recipe.instructions.split('\n').map((paragraph, index) => (
+              <li key={index}>{paragraph}</li>
+            ))}
+          </ol>
         </div>
       )}
 

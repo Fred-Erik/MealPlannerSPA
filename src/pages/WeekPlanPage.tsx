@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Minus, Plus, Repeat, Trash2 } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Minus, Plus, Repeat, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RecipePickerDialog } from '@/components/week/RecipePickerDialog'
-import { useMealPlan, useGenerateWeek, useUpdatePlanItem, useDeletePlanItem, useAddPlanItem } from '@/hooks/useMealPlan'
+import { useMealPlan, useGenerateWeek, useUpdatePlanItem, useDeletePlanItem } from '@/hooks/useMealPlan'
 import { useRotation } from '@/hooks/useCategories'
 import { useRecipes } from '@/hooks/useRecipes'
 import { useSettings } from '@/hooks/useSettings'
@@ -29,6 +28,10 @@ export function WeekPlanPage() {
   const navigate = useNavigate()
   const weekStart = params.weekStart ?? getCurrentWeekStart()
   const editable = isEditableWeek(weekStart)
+  const currentWeekStart = getCurrentWeekStart()
+  const nextWeekStart = getNextWeekStart(currentWeekStart)
+  const weekSubtitle =
+    weekStart === currentWeekStart ? 'Deze week' : weekStart === nextWeekStart ? 'Komende week' : null
 
   const { data: plan, isLoading: planLoading } = useMealPlan(weekStart)
   const { data: rotation } = useRotation()
@@ -36,32 +39,43 @@ export function WeekPlanPage() {
   const { data: settings } = useSettings()
 
   const generateWeek = useGenerateWeek()
-  const addItem = useAddPlanItem(weekStart)
   const updateItem = useUpdatePlanItem(weekStart)
   const deleteItem = useDeletePlanItem(weekStart)
 
-  const [slotCount, setSlotCount] = useState(3)
+  // Target count used only until a plan exists; afterwards the actual item count is authoritative.
+  const [pendingCount, setPendingCount] = useState(3)
   const [pickerOpenForItem, setPickerOpenForItem] = useState<string | null>(null)
-  const [addPickerOpen, setAddPickerOpen] = useState(false)
-  const [showList, setShowList] = useState(false)
 
   useEffect(() => {
-    if (settings) setSlotCount(settings.defaultRecipesPerWeek)
+    if (settings) setPendingCount(settings.defaultRecipesPerWeek)
   }, [settings])
 
-  async function handleGenerate() {
+  const recipeCount = plan ? plan.items.length : pendingCount
+
+  async function handleIncrement() {
     if (!rotation || !recipes || !settings) return
     try {
       await generateWeek.mutateAsync({
         weekStart,
         categories: rotation,
         recipes,
-        slotCount,
+        slotCount: recipeCount + 1,
         defaultServings: settings.defaultServings,
+        existingRecipeIds: plan?.items.map((i) => i.recipeId) ?? [],
+        existingPositions: plan?.items.map((i) => i.position) ?? [],
       })
     } catch {
-      toast.error('Genereren mislukt.')
+      toast.error('Toevoegen mislukt.')
     }
+  }
+
+  async function handleDecrement() {
+    if (!plan || plan.items.length === 0) {
+      setPendingCount((n) => Math.max(0, n - 1))
+      return
+    }
+    const lastItem = [...plan.items].sort((a, b) => b.position - a.position)[0]
+    await deleteItem.mutateAsync(lastItem.id)
   }
 
   async function handleCookedToggle(itemId: string, checked: boolean) {
@@ -77,16 +91,6 @@ export function WeekPlanPage() {
     await updateItem.mutateAsync({ itemId, recipeId, cookedAt: null })
   }
 
-  async function handleAdd(recipeId: string) {
-    if (!plan || !settings) return
-    await addItem.mutateAsync({
-      mealPlanId: plan.id,
-      recipeId,
-      servings: settings.defaultServings,
-      position: plan.items.length,
-    })
-  }
-
   async function handleCopyList() {
     if (!plan) return
     const text = buildShoppingList(plan.items)
@@ -96,57 +100,78 @@ export function WeekPlanPage() {
     } catch {
       toast.error('Kopiëren mislukt, gebruik de tekst hieronder.')
     }
-    setShowList(true)
   }
 
-  const upcomingCategories = rotation ? sortCategoriesByRotation(rotation.filter((c) => c.recipeCount > 0)) : []
+  const usedCategoryIds = new Set(plan?.items.map((i) => i.recipe.categoryId) ?? [])
+  const upcomingCategories = rotation
+    ? sortCategoriesByRotation(rotation.filter((c) => c.recipeCount > 0 && !usedCategoryIds.has(c.id)))
+    : []
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => navigate(`/week/${getPreviousWeekStart(weekStart)}`)}>
-              <ChevronLeft className="size-4" />
-            </Button>
-            <h1 className="text-xl font-semibold">{formatWeekLabel(weekStart)}</h1>
-            <Button variant="outline" size="icon" onClick={() => navigate(`/week/${getNextWeekStart(weekStart)}`)}>
-              <ChevronRight className="size-4" />
-            </Button>
+        <div className="space-y-2">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => navigate(`/week/${getPreviousWeekStart(weekStart)}`)}>
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <h1 className="text-xl font-semibold">{formatWeekLabel(weekStart)}</h1>
+                <Button variant="outline" size="icon" onClick={() => navigate(`/week/${getNextWeekStart(weekStart)}`)}>
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+              {!editable && <Badge variant="secondary">Alleen-lezen</Badge>}
+            </div>
+            {weekSubtitle && <p className="mt-0.5 text-sm text-muted-foreground">{weekSubtitle}</p>}
           </div>
-          {!editable && <Badge variant="secondary">Alleen-lezen</Badge>}
+
+          {editable && (
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-sky-50 px-3 py-2 mt-3">
+              <span className="text-sm font-medium">Aantal recepten deze week</span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handleDecrement}
+                  disabled={deleteItem.isPending || generateWeek.isPending}
+                >
+                  <Minus className="size-3.5" />
+                </Button>
+                <span className="w-5 text-center text-sm tabular-nums">{recipeCount}</span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handleIncrement}
+                  disabled={generateWeek.isPending}
+                >
+                  <Plus className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
+
+      {plan && (
+        <Button onClick={handleCopyList} variant="secondary" className="w-fit bg-sky-200 py-5 px-3 -mt-5 mb-0">
+          Boodschappenlijst kopiëren
+        </Button>
+      )}
 
         {planLoading ? (
           <Skeleton className="h-40 w-full" />
         ) : !plan ? (
-          editable ? (
-            <Card>
-              <CardContent className="flex flex-col gap-4 py-6">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">Aantal recepten deze week</span>
-                  <Button variant="outline" size="icon" onClick={() => setSlotCount((n) => Math.max(0, n - 1))}>
-                    <Minus className="size-4" />
-                  </Button>
-                  <span className="w-6 text-center">{slotCount}</span>
-                  <Button variant="outline" size="icon" onClick={() => setSlotCount((n) => n + 1)}>
-                    <Plus className="size-4" />
-                  </Button>
-                </div>
-                <Button onClick={handleGenerate} disabled={generateWeek.isPending} className="w-fit">
-                  Genereer suggesties
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <p className="text-muted-foreground">Geen maaltijdplan voor deze week.</p>
-          )
+          !editable && <p className="text-muted-foreground">Geen maaltijdplan voor deze week.</p>
         ) : (
           <div className="space-y-3">
             {plan.items.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="flex flex-col gap-3 py-4">
-                  <div className="flex items-center gap-4">
+              <Card key={item.id} className="my-5">
+                <CardContent className="flex flex-col gap-3">
+                  <div
+                    className="flex cursor-pointer items-center gap-4"
+                    onClick={() => navigate(`/recepten/${item.recipeId}`)}
+                  >
                     <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted">
                       {item.recipe.photoPath && (
                         <img
@@ -188,13 +213,20 @@ export function WeekPlanPage() {
                         </Button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-1.5 text-sm">
-                          <Checkbox
-                            checked={!!item.cookedAt}
-                            onCheckedChange={(checked) => handleCookedToggle(item.id, !!checked)}
-                          />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCookedToggle(item.id, !item.cookedAt)}
+                          className={cn(
+                            'border-dashed',
+                            item.cookedAt &&
+                              'border-solid border-green-600 bg-green-600/10 text-green-700 hover:bg-green-600/20 dark:text-green-400',
+                          )}
+                        >
+                          {item.cookedAt && <Check className="size-3.5" />}
                           Gekookt
-                        </label>
+                        </Button>
                         <Button variant="outline" size="icon" onClick={() => setPickerOpenForItem(item.id)} title="Vervangen">
                           <Repeat className="size-4" />
                         </Button>
@@ -212,55 +244,37 @@ export function WeekPlanPage() {
                 </CardContent>
               </Card>
             ))}
-
-            {editable && (
-              <Button variant="outline" onClick={() => setAddPickerOpen(true)}>
-                <Plus className="mr-1 size-4" /> Recept toevoegen
-              </Button>
-            )}
-
-            <Button onClick={handleCopyList} variant="secondary">
-              Boodschappenlijst kopiëren
-            </Button>
-
-            {showList && (
-              <pre className="whitespace-pre-wrap rounded-md border bg-muted p-3 text-sm">
-                {buildShoppingList(plan.items)}
-              </pre>
-            )}
           </div>
         )}
       </div>
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Komende categorieën</h2>
-        <ol className="space-y-1 text-sm">
-          {upcomingCategories.map((category, index) => (
-            <li key={category.id}>
-              {index + 1}. {category.name}
-            </li>
+        <div className="space-y-2">
+          {upcomingCategories.slice(0, 6).map((category, index) => (
+            <div
+              key={category.id}
+              className="rounded-lg border bg-card px-3 py-2 text-sm ring-1 ring-foreground/10"
+              style={{ opacity: 1 - index * 0.17 }}
+            >
+              {category.name}
+            </div>
           ))}
-        </ol>
+        </div>
       </div>
 
       {recipes && (
-        <>
-          <RecipePickerDialog
-            open={!!pickerOpenForItem}
-            onOpenChange={(open) => !open && setPickerOpenForItem(null)}
-            recipes={recipes}
-            excludeRecipeIds={plan?.items.map((i) => i.recipeId) ?? []}
-            onSelect={(recipeId) => pickerOpenForItem && handleReplace(pickerOpenForItem, recipeId)}
-          />
-          <RecipePickerDialog
-            open={addPickerOpen}
-            onOpenChange={setAddPickerOpen}
-            recipes={recipes}
-            excludeRecipeIds={plan?.items.map((i) => i.recipeId) ?? []}
-            onSelect={handleAdd}
-          />
-        </>
+        <RecipePickerDialog
+          open={!!pickerOpenForItem}
+          onOpenChange={(open) => !open && setPickerOpenForItem(null)}
+          recipes={recipes}
+          rotation={rotation}
+          selectedRecipeId={pickerOpenForItem ? plan?.items.find((i) => i.id === pickerOpenForItem)?.recipeId : null}
+          excludeRecipeIds={plan?.items.map((i) => i.recipeId) ?? []}
+          onSelect={(recipeId) => pickerOpenForItem && handleReplace(pickerOpenForItem, recipeId)}
+        />
       )}
     </div>
   )
 }
+

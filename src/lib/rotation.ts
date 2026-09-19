@@ -32,8 +32,8 @@ function sortRecipesByRotation(recipes: Recipe[]): Recipe[] {
 /**
  * Picks the next `slotCount` recipes: one per least-recently-cooked eligible category, then the
  * least-recently-cooked recipe within that category. Categories with no recipes are excluded so
- * they can't block the rotation. Slots become `null` when fewer eligible categories exist than
- * `slotCount`.
+ * they can't block the rotation. A category with no remaining unused recipe is skipped in favor
+ * of the next eligible category. Slots become `null` once eligible categories are exhausted.
  */
 export function suggestWeek(
   categories: CategoryRotation[],
@@ -44,8 +44,10 @@ export function suggestWeek(
   const usedRecipeIds = new Set<string>()
   const slots: Array<SuggestedSlot | null> = []
 
-  for (let i = 0; i < slotCount; i++) {
-    const category = eligibleCategories[i]
+  let categoryIndex = 0
+  while (slots.length < slotCount) {
+    const category = eligibleCategories[categoryIndex]
+    categoryIndex++
     if (!category) {
       slots.push(null)
       continue
@@ -54,10 +56,7 @@ export function suggestWeek(
       recipes.filter((r) => r.categoryId === category.id && !usedRecipeIds.has(r.id)),
     )
     const recipe = candidateRecipes[0]
-    if (!recipe) {
-      slots.push(null)
-      continue
-    }
+    if (!recipe) continue
     usedRecipeIds.add(recipe.id)
     slots.push({ categoryId: category.id, recipeId: recipe.id })
   }

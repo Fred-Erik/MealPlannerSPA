@@ -23,17 +23,25 @@ interface GenerateWeekInput {
   recipes: Recipe[]
   slotCount: number
   defaultServings: number
+  existingRecipeIds: string[]
+  existingPositions: number[]
 }
 
-/** Creates the week's plan (if missing) and fills its slots via the rotation algorithm. */
+/** Creates the week's plan (if missing) and fills its remaining slots via the rotation algorithm. */
 export function useGenerateWeek() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: GenerateWeekInput) => {
-      const plan = await mealPlansApi.createPlan(input.weekStart)
-      const slots = suggestWeek(input.categories, input.recipes, input.slotCount)
+      const plan = await mealPlansApi.getOrCreatePlan(input.weekStart)
+      const remaining = input.slotCount - input.existingRecipeIds.length
+      if (remaining <= 0) return plan
+      const availableRecipes = input.recipes.filter((r) => !input.existingRecipeIds.includes(r.id))
+      const slots = suggestWeek(input.categories, availableRecipes, remaining)
+      const nextPosition = input.existingPositions.length > 0 ? Math.max(...input.existingPositions) + 1 : 0
       const items = slots
-        .map((slot, position) => (slot ? { recipeId: slot.recipeId, servings: input.defaultServings, position } : null))
+        .map((slot, i) =>
+          slot ? { recipeId: slot.recipeId, servings: input.defaultServings, position: nextPosition + i } : null,
+        )
         .filter((item): item is NonNullable<typeof item> => item !== null)
       await mealPlansApi.addItems(plan.id, items)
       return plan
