@@ -212,7 +212,6 @@ export type Database = {
           created_at: string | null
           id: string | null
           last_cooked_at: string | null
-          last_planned_at: string | null
           name: string | null
           recipe_count: number | null
         }

@@ -8,7 +8,6 @@ export interface CategoryRotation {
   name: string
   createdAt: string
   lastCookedAt: string | null
-  lastPlannedAt: string | null
   recipeCount: number
 }
 
