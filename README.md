@@ -1,4 +1,4 @@
-# Maaltijdplanner
+# Receptroulette
 
 Een SPA om maaltijden te plannen met roulatie over categorieën (ovenschotel, pasta, curry, …).
 Gebouwd met Vite, React 19, TypeScript, Tailwind v4, shadcn/base-ui en Supabase. Gehost op

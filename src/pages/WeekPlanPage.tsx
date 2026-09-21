@@ -82,7 +82,7 @@ export function WeekPlanPage() {
   }
 
   async function handleCookedToggle(itemId: string, checked: boolean) {
-    await updateItem.mutateAsync({ itemId, cookedAt: checked ? getCurrentWeekStart() : null })
+    await updateItem.mutateAsync({ itemId, cookedAt: checked ? weekStart : null })
   }
 
   async function handleServingsChange(itemId: string, servings: number) {
@@ -159,7 +159,7 @@ export function WeekPlanPage() {
           )}
 
           {plan && (
-            <Button onClick={handleCopyList} variant="secondary" className="w-fit bg-sky-200 py-5 px-3">
+            <Button onClick={handleCopyList} variant="secondary" className="w-full sm:w-fit bg-sky-200 py-5 px-3 -mb-2">
               Boodschappenlijst kopiëren
             </Button>
           )}
@@ -172,32 +172,33 @@ export function WeekPlanPage() {
         ) : (
           <div className="space-y-3">
             {plan.items.map((item) => (
-              <Card key={item.id} className="my-5">
-                <CardContent className="flex flex-col gap-3">
+              <Card key={item.id} className="my-5 overflow-hidden py-0">
+                <div
+                  className="relative aspect-video w-full cursor-pointer bg-muted"
+                  onClick={() => navigate(`/recepten/${item.recipeId}`)}
+                >
+                  {item.recipe.photoPath && (
+                    <img
+                      src={getPhotoUrl(item.recipe.photoPath)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                  <Badge variant="secondary" className="absolute right-2 top-2">
+                    {item.recipe.category.name}
+                  </Badge>
+                </div>
+                <CardContent className="flex flex-col gap-3 pb-4">
                   <div
-                    className="flex cursor-pointer items-center gap-4"
+                    className="cursor-pointer"
                     onClick={() => navigate(`/recepten/${item.recipeId}`)}
                   >
-                    <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                      {item.recipe.photoPath && (
-                        <img
-                          src={getPhotoUrl(item.recipe.photoPath)}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className={cn('font-medium', item.cookedAt && 'line-through text-muted-foreground')}>
-                        {item.recipe.name}
-                      </span>
-                      <div className="mt-1">
-                        <Badge variant="secondary">{item.recipe.category.name}</Badge>
-                      </div>
-                    </div>
+                    <span className={cn('font-medium', item.cookedAt && 'line-through text-muted-foreground')}>
+                      {item.recipe.name}
+                    </span>
                   </div>
-                  {editable && (
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    {editable ? (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>Personen:</span>
                         <Button
@@ -218,27 +219,31 @@ export function WeekPlanPage() {
                           <Plus className="size-3" />
                         </Button>
                       </div>
-                      <div className="flex items-center gap-2">
+                    ) : (
+                      <span />
+                    )}
+                    <div className="flex items-center gap-2">
+                      {editable && (
                         <Button variant="outline" size="icon" onClick={() => setPickerOpenForItem(item.id)} title="Vervangen">
                           <Repeat className="size-4" />
                         </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size={item.cookedAt ? "sm" : "icon"}
-                          onClick={() => handleCookedToggle(item.id, !item.cookedAt)}
-                          className={cn(
-                            'py-4',
-                            item.cookedAt &&
-                              'border-solid border-green-600 bg-green-600/10 text-green-700 hover:bg-green-600/20 dark:text-green-400',
-                          )}
-                        >
-                          <Check className="size-3.5" />
-                          {item.cookedAt && "Gekookt" }
-                        </Button>
-                      </div>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size={item.cookedAt ? "sm" : "icon"}
+                        onClick={() => handleCookedToggle(item.id, !item.cookedAt)}
+                        className={cn(
+                          'py-4',
+                          item.cookedAt &&
+                            'border-solid border-green-600 bg-green-600/10 text-green-700 hover:bg-green-600/20 dark:text-green-400',
+                        )}
+                      >
+                        <Check className="size-3.5" />
+                        {item.cookedAt && "Gekookt" }
+                      </Button>
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             ))}

@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet } from 'react-router'
 import { LogOut, Menu } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,9 @@ export function AppLayout() {
     <div className="min-h-screen">
       <header className="border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <span className="font-heading text-lg font-semibold">Maaltijdplanner</span>
+          <Link to="/week" className="font-heading text-lg font-semibold">
+            Receptroulette
+          </Link>
           <nav className="hidden items-center gap-1 sm:flex">
             {NAV_ITEMS.map((item) => (
               <NavLink
