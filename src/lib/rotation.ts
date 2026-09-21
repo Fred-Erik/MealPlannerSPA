@@ -12,11 +12,19 @@ function compareNullsFirst(a: string | null, b: string | null): number {
   return a < b ? -1 : 1
 }
 
-/** Sorts categories by least-recently-cooked first; categories that were never cooked come first. */
+/** Most recent of lastCookedAt/lastPlannedAt: a category counts as "used" as soon as it's
+ * planned into a week, even before it's marked as cooked, so rotation keeps moving forward. */
+function lastUsedAt(category: CategoryRotation): string | null {
+  const { lastCookedAt, lastPlannedAt } = category
+  if (lastCookedAt && lastPlannedAt) return lastCookedAt > lastPlannedAt ? lastCookedAt : lastPlannedAt
+  return lastCookedAt ?? lastPlannedAt
+}
+
+/** Sorts categories by least-recently-used first; categories that were never used come first. */
 export function sortCategoriesByRotation(categories: CategoryRotation[]): CategoryRotation[] {
   return [...categories].sort((a, b) => {
-    const byLastCooked = compareNullsFirst(a.lastCookedAt, b.lastCookedAt)
-    if (byLastCooked !== 0) return byLastCooked
+    const byLastUsed = compareNullsFirst(lastUsedAt(a), lastUsedAt(b))
+    if (byLastUsed !== 0) return byLastUsed
     return a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0
   })
 }
