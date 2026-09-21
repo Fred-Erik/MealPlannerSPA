@@ -134,7 +134,7 @@ export function WeekPlanPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {editable && (
-            <div className="flex flex-1 items-center justify-between gap-3 rounded-lg bg-sky-50 px-3 py-2">
+            <div className="flex flex-1 items-center justify-between gap-3 rounded-lg bg-sky-50 px-3" style={{ paddingBottom: '6.5px', paddingTop: '6.5px' }}>
               <span className="text-sm font-medium">Aantal recepten deze week</span>
               <div className="flex items-center gap-1">
                 <Button
@@ -159,7 +159,7 @@ export function WeekPlanPage() {
           )}
 
           {plan && (
-            <Button onClick={handleCopyList} variant="secondary" className="w-full sm:w-fit bg-sky-200 py-5 px-3 -mb-2">
+            <Button onClick={handleCopyList} variant="secondary" className="w-full sm:w-fit bg-sky-200 py-5 px-3">
               Boodschappenlijst kopiëren
             </Button>
           )}
