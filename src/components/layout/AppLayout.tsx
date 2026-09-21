@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router'
-import { LogOut, Menu } from 'lucide-react'
+import { LoaderPinwheel, LogOut, Menu } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/auth/AuthProvider'
@@ -21,7 +21,8 @@ export function AppLayout() {
     <div className="min-h-screen">
       <header className="border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link to="/week" className="font-heading text-lg font-semibold">
+          <Link to="/week" className="flex items-center gap-2 font-heading text-lg font-semibold">
+            <LoaderPinwheel className="size-4" />
             Receptroulette
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
