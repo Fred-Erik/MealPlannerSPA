@@ -1,7 +1,25 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Plus, Trash2 } from 'lucide-react'
+import { GripVertical, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,25 +34,54 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCreateCategory, useDeleteCategory, useRenameCategory, useRotation } from '@/hooks/useCategories'
+import {
+  useCreateCategory,
+  useDeleteCategory,
+  useRenameCategory,
+  useReorderCategories,
+  useRotation,
+} from '@/hooks/useCategories'
 import { sortCategoriesByRotation } from '@/lib/rotation'
 import { toDutchErrorMessage } from '@/lib/errors'
+import type { CategoryRotation } from '@/types/domain'
 
 export function CategoriesPage() {
   const { data: rotation, isLoading } = useRotation()
   const createCategory = useCreateCategory()
   const renameCategory = useRenameCategory()
   const deleteCategory = useDeleteCategory()
+  const reorderCategories = useReorderCategories()
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   const categories = rotation ?? []
-  const eligibleOrder = sortCategoriesByRotation(categories.filter((c) => c.recipeCount > 0))
-  const positionById = new Map(eligibleOrder.map((c, i) => [c.id, i + 1]))
-  const byName = [...categories].sort((a, b) => a.name.localeCompare(b.name, 'nl'))
+  const ordered = sortCategoriesByRotation(categories)
+  const positionById = new Map(
+    sortCategoriesByRotation(categories.filter((c) => c.recipeCount > 0)).map((c, i) => [c.id, i + 1]),
+  )
+  const query = search.trim().toLowerCase()
+  const filtered = query ? ordered.filter((c) => c.name.toLowerCase().includes(query)) : ordered
+  const isFiltering = query.length > 0
   const pendingDelete = categories.find((c) => c.id === pendingDeleteId)
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = ordered.findIndex((c) => c.id === active.id)
+    const newIndex = ordered.findIndex((c) => c.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const newOrder = arrayMove(ordered, oldIndex, newIndex)
+    reorderCategories.mutate(newOrder.map((c) => c.id))
+  }
+
 
   async function handleCreate() {
     const name = newName.trim()
@@ -73,6 +120,16 @@ export function CategoriesPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Categorieën</h1>
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Zoek categorie..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Nieuwe categorie</CardTitle>
@@ -95,60 +152,37 @@ export function CategoriesPage() {
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Geen categorieën gevonden.</p>
       ) : (
-        <div className="space-y-2">
-          {byName.map((category) => (
-            <Card key={category.id}>
-              <CardContent className="flex items-center justify-between gap-3 py-3">
-                {editingId === category.id ? (
-                  <Input
-                    autoFocus
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    onBlur={() => handleRename(category.id)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleRename(category.id)}
-                    className="max-w-xs"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="text-left font-medium hover:underline"
-                    onClick={() => {
-                      setEditingId(category.id)
-                      setEditingName(category.name)
-                    }}
-                  >
-                    {category.name}
-                  </button>
-                )}
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  {category.recipeCount > 0 ? (
-                    <Link to={`/recepten?categorie=${category.id}`} className="hover:underline">
-                      {category.recipeCount} {category.recipeCount === 1 ? 'recept' : 'recepten'}
-                    </Link>
-                  ) : (
-                    <span>
-                      {category.recipeCount} {category.recipeCount === 1 ? 'recept' : 'recepten'}
-                    </span>
-                  )}
-                  {positionById.has(category.id) ? (
-                    <span>Positie {positionById.get(category.id)} in rotatie</span>
-                  ) : (
-                    <span>Niet in rotatie</span>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setPendingDeleteId(category.id)}
-                    title="Verwijderen"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis]}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={filtered.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {filtered.map((category) => (
+                <SortableCategoryRow
+                  key={category.id}
+                  category={category}
+                  disabled={isFiltering}
+                  position={positionById.get(category.id) ?? null}
+                  editing={editingId === category.id}
+                  editingName={editingName}
+                  onEditingNameChange={setEditingName}
+                  onStartEdit={() => {
+                    setEditingId(category.id)
+                    setEditingName(category.name)
+                  }}
+                  onRename={() => handleRename(category.id)}
+                  onDelete={() => setPendingDeleteId(category.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       <AlertDialog open={!!pendingDeleteId} onOpenChange={(open) => !open && setPendingDeleteId(null)}>
@@ -170,5 +204,83 @@ export function CategoriesPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+interface SortableCategoryRowProps {
+  category: CategoryRotation
+  disabled: boolean
+  position: number | null
+  editing: boolean
+  editingName: string
+  onEditingNameChange: (name: string) => void
+  onStartEdit: () => void
+  onRename: () => void
+  onDelete: () => void
+}
+
+function SortableCategoryRow({
+  category,
+  disabled,
+  position,
+  editing,
+  editingName,
+  onEditingNameChange,
+  onStartEdit,
+  onRename,
+  onDelete,
+}: SortableCategoryRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: category.id,
+    disabled,
+  })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+
+  return (
+    <Card ref={setNodeRef} style={style} className={isDragging ? 'opacity-50' : undefined}>
+      <CardContent className="flex items-center justify-between gap-3 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            className="touch-none text-muted-foreground disabled:cursor-not-allowed disabled:opacity-30"
+            disabled={disabled}
+            title="Sleep om volgorde aan te passen"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-4" />
+          </button>
+          {editing ? (
+            <Input
+              autoFocus
+              value={editingName}
+              onChange={(e) => onEditingNameChange(e.target.value)}
+              onBlur={onRename}
+              onKeyDown={(e) => e.key === 'Enter' && onRename()}
+              className="max-w-xs"
+            />
+          ) : (
+            <button type="button" className="text-left font-medium hover:underline" onClick={onStartEdit}>
+              {category.name}
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          {category.recipeCount > 0 ? (
+            <Link to={`/recepten?categorie=${category.id}`} className="hover:underline">
+              {category.recipeCount} {category.recipeCount === 1 ? 'recept' : 'recepten'}
+            </Link>
+          ) : (
+            <span>
+              {category.recipeCount} {category.recipeCount === 1 ? 'recept' : 'recepten'}
+            </span>
+          )}
+          {position !== null ? <span>Positie {position} in rotatie</span> : <span>Niet in rotatie</span>}
+          <Button variant="ghost" size="icon" onClick={onDelete} title="Verwijderen">
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

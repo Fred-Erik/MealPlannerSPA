@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { Check, ChevronLeft, ChevronRight, Minus, Plus, Repeat } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RecipePickerDialog } from '@/components/week/RecipePickerDialog'
@@ -174,7 +174,7 @@ export function WeekPlanPage() {
             {plan.items.map((item) => (
               <Card key={item.id} className="my-5 overflow-hidden py-0">
                 <div
-                  className="relative aspect-video w-full cursor-pointer bg-muted"
+                  className="relative aspect-video w-full overflow-hidden cursor-pointer bg-muted"
                   onClick={() => navigate(`/recepten/${item.recipeId}`)}
                 >
                   {item.recipe.photoPath && (
@@ -187,64 +187,85 @@ export function WeekPlanPage() {
                   <Badge variant="secondary" className="absolute right-2 top-2">
                     {item.recipe.category.name}
                   </Badge>
-                </div>
-                <CardContent className="flex flex-col gap-3 pb-4">
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/recepten/${item.recipeId}`)}
-                  >
-                    <span className={cn('font-medium', item.cookedAt && 'line-through text-muted-foreground')}>
-                      {item.recipe.name}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    {editable ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>Personen:</span>
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-3 pb-3 pt-15">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={cn('font-medium text-white', item.cookedAt && 'line-through text-white/70')}>
+                        {item.recipe.name}
+                      </span>
+                      {!editable && (
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-6"
-                          onClick={() => handleServingsChange(item.id, item.servings - 1)}
+                          type="button"
+                          variant="outline"
+                          size={item.cookedAt ? "sm" : "icon"}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCookedToggle(item.id, !item.cookedAt)
+                          }}
+                          className={cn(
+                            'shrink-0 py-4 border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white',
+                            item.cookedAt &&
+                              'border-solid border-green-500 bg-green-600/30 text-green-100 hover:bg-green-600/40',
+                          )}
                         >
-                          <Minus className="size-3" />
-                        </Button>
-                        <span>{item.servings}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-6"
-                          onClick={() => handleServingsChange(item.id, item.servings + 1)}
-                        >
-                          <Plus className="size-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <span />
-                    )}
-                    <div className="flex items-center gap-2">
-                      {editable && (
-                        <Button variant="outline" size="icon" onClick={() => setPickerOpenForItem(item.id)} title="Vervangen">
-                          <Repeat className="size-4" />
+                          <Check className="size-3.5" />
+                          {item.cookedAt && "Gekookt" }
                         </Button>
                       )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size={item.cookedAt ? "sm" : "icon"}
-                        onClick={() => handleCookedToggle(item.id, !item.cookedAt)}
-                        className={cn(
-                          'py-4',
-                          item.cookedAt &&
-                            'border-solid border-green-600 bg-green-600/10 text-green-700 hover:bg-green-600/20 dark:text-green-400',
-                        )}
-                      >
-                        <Check className="size-3.5" />
-                        {item.cookedAt && "Gekookt" }
-                      </Button>
                     </div>
+                    {editable && (
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div
+                          className="flex items-center gap-2 text-sm text-white/90"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span>Personen:</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-white hover:bg-white/20 hover:text-white"
+                            onClick={() => handleServingsChange(item.id, item.servings - 1)}
+                          >
+                            <Minus className="size-3" />
+                          </Button>
+                          <span>{item.servings}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-white hover:bg-white/20 hover:text-white"
+                            onClick={() => handleServingsChange(item.id, item.servings + 1)}
+                          >
+                            <Plus className="size-3" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                            onClick={() => setPickerOpenForItem(item.id)}
+                            title="Vervangen"
+                          >
+                            <Repeat className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size={item.cookedAt ? "sm" : "icon"}
+                            onClick={() => handleCookedToggle(item.id, !item.cookedAt)}
+                            className={cn(
+                              'py-4 border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white',
+                              item.cookedAt &&
+                                'border-solid border-green-500 bg-green-600/30 text-green-100 hover:bg-green-600/40',
+                            )}
+                          >
+                            <Check className="size-3.5" />
+                            {item.cookedAt && "Gekookt" }
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
+                </div>
               </Card>
             ))}
           </div>

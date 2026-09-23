@@ -19,16 +19,19 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sort_order: number
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          sort_order?: number
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -214,6 +217,7 @@ export type Database = {
           last_cooked_at: string | null
           name: string | null
           recipe_count: number | null
+          sort_order: number | null
         }
         Relationships: []
       }
@@ -227,6 +231,10 @@ export type Database = {
       }
     }
     Functions: {
+      reorder_categories: {
+        Args: { category_ids: string[] }
+        Returns: undefined
+      }
       save_recipe: { Args: { payload: Json }; Returns: string }
     }
     Enums: {

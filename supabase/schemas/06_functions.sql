@@ -102,3 +102,25 @@ $$;
 revoke execute on function public.save_recipe(jsonb) from public;
 grant execute on function public.save_recipe(jsonb) to authenticated;
 
+-- Sets category sort_order to match the given id order (used for drag-and-drop reordering).
+create or replace function public.reorder_categories(category_ids uuid[])
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+  v_position integer := 0;
+begin
+  foreach v_id in array category_ids
+  loop
+    update public.categories set sort_order = v_position where id = v_id;
+    v_position := v_position + 1;
+  end loop;
+end;
+$$;
+
+revoke execute on function public.reorder_categories(uuid[]) from public;
+grant execute on function public.reorder_categories(uuid[]) to authenticated;
+

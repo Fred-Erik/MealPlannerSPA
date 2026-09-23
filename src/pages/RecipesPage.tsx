@@ -104,25 +104,23 @@ export function RecipesPage() {
             <Link
               key={recipe.id}
               to={`/recepten/${recipe.id}`}
-              className="flex flex-col overflow-hidden rounded-lg border transition-colors hover:bg-accent"
+              className="relative aspect-video overflow-hidden rounded-lg border bg-muted transition-colors hover:bg-accent"
             >
-              <div className="aspect-video bg-muted">
-                {recipe.photoPath && (
-                  <img
-                    src={getPhotoUrl(recipe.photoPath)}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                )}
-              </div>
-              <div className="flex flex-1 flex-col gap-2 p-3">
-                <span className="font-medium">{recipe.name}</span>
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary">{recipe.category.name}</Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {recipe.lastCookedAt ? `Laatst gekookt: ${recipe.lastCookedAt}` : 'Nog niet gekookt'}
-                  </span>
-                </div>
+              {recipe.photoPath && (
+                <img
+                  src={getPhotoUrl(recipe.photoPath)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              )}
+              <Badge variant="secondary" className="absolute right-2 top-2">
+                {recipe.category.name}
+              </Badge>
+              <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-2 pt-10">
+                <span className="font-medium text-white">{recipe.name}</span>
+                <span className="text-xs text-white/80">
+                  {recipe.lastCookedAt ? `Laatst gekookt: ${recipe.lastCookedAt}` : 'Nog niet gekookt'}
+                </span>
               </div>
             </Link>
           ))}

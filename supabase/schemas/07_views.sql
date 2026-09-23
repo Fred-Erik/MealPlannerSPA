@@ -15,11 +15,12 @@ with (security_invoker = true) as
 select
   c.id,
   c.name,
+  c.sort_order,
   c.created_at,
   max(r.last_cooked_at) as last_cooked_at,
   count(r.id) as recipe_count
 from public.categories c
 left join public.recipes r on r.category_id = c.id
-group by c.id, c.name, c.created_at;
+group by c.id, c.name, c.sort_order, c.created_at;
 
 grant select on public.category_rotation to authenticated;

@@ -6,6 +6,7 @@ export interface Category {
 export interface CategoryRotation {
   id: string
   name: string
+  sortOrder: number
   createdAt: string
   lastCookedAt: string | null
   recipeCount: number

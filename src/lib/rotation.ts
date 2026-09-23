@@ -17,7 +17,7 @@ export function sortCategoriesByRotation(categories: CategoryRotation[]): Catego
   return [...categories].sort((a, b) => {
     const byLastCooked = compareNullsFirst(a.lastCookedAt, b.lastCookedAt)
     if (byLastCooked !== 0) return byLastCooked
-    return a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0
+    return a.sortOrder - b.sortOrder
   })
 }
 

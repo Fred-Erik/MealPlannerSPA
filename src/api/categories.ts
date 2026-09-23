@@ -30,13 +30,19 @@ export async function deleteCategory(id: string): Promise<void> {
 export async function getRotation(): Promise<CategoryRotation[]> {
   const { data, error } = await supabase
     .from('category_rotation')
-    .select('id, name, created_at, last_cooked_at, recipe_count')
+    .select('id, name, sort_order, created_at, last_cooked_at, recipe_count')
   if (error) throw error
   return data.map((row) => ({
     id: row.id!,
     name: row.name!,
+    sortOrder: row.sort_order!,
     createdAt: row.created_at!,
     lastCookedAt: row.last_cooked_at,
     recipeCount: row.recipe_count!,
   }))
+}
+
+export async function reorderCategories(categoryIds: string[]): Promise<void> {
+  const { error } = await supabase.rpc('reorder_categories', { category_ids: categoryIds })
+  if (error) throw error
 }
